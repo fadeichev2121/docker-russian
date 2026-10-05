@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "repository": "docker-russian",
+  "package_version": "1.0.0",
+  "author": "fadeichev2121",
+  "platforms": {
+    "macOS": [
+      "4.45.0",
+      "latest"
+    ],
+    "Windows": {
+      "versions": [
+        "4.45.0",
+        "latest"
+      ],
+      "architectures": [
+        "x64",
+        "arm64"
+      ],
+      "installation": "official installer"
+    },
+    "Linux": {
+      "versions": [
+        "4.45.0",
+        "latest"
+      ],
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "installation": "official DEB / RPM"
+    }
+  },
+  "dictionary_entries": 264,
+  "execution_verified": true,
+  "compatibility_as_of": "2026-10-05"
+}
