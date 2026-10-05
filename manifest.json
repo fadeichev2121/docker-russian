@@ -1,35 +1,38 @@
 {
-  "format": 1,
+  "format": 2,
   "repository": "docker-russian",
-  "package_version": "2.1.1",
+  "package_version": "3.0.0",
   "author": "fadeichev2121",
-  "platforms": {
-    "macOS": {
-      "installation": "blocked",
-      "automatic_restore": "blocked"
-    },
-    "Windows": {
-      "verification": "not_checked",
-      "installation": "experimental"
-    },
-    "Linux": {
-      "verification": "not_checked",
-      "installation": "experimental"
-    }
+  "method": "original-app-launcher-cdp-pipe",
+  "requirements": {
+    "node": ">=18",
+    "python": false,
+    "npm_dependencies": false
   },
   "dictionary_entries": 3290,
-  "execution_verified": false,
-  "compatibility_as_of": "2026-10-05",
-  "validation": {
-    "platform": "macOS",
-    "docker_version": "4.93.0",
-    "docker_build": "4.93.0.2",
-    "archive_install_restore": "archive_hashes_verified_before_macOS_signature_failure",
-    "application_launch": "verified_original_app_after_restoration",
-    "windows_linux": "not_checked",
-    "patched_application_launch": "failed_code_signature_invalid",
-    "macos_translation_install": "blocked"
+  "signed_application_modified": false,
+  "platforms": {
+    "macOS": {
+      "installation": "helper",
+      "verification": "prototype_pipe_on_4.93.0_only",
+      "full_launcher_verification": "not_checked"
+    },
+    "Windows": {
+      "installation": "helper_experimental",
+      "verification": "not_checked"
+    },
+    "Linux": {
+      "installation": "helper_experimental",
+      "verification": "not_checked"
+    }
   },
-  "blocked_macos_installation": "all macOS versions",
-  "blocked_macos_restore": "all macOS versions"
+  "legacy_asar_patch": "blocked_on_all_platforms",
+  "automatic_login_start": false,
+  "vendor_update_behavior": "helper_kept_outside_app; reinject_on_RU_launch; future_versions_not_guaranteed",
+  "validation": {
+    "fixture_tests": "8 Node + 7 legacy Python",
+    "real_application_launch": "not_checked",
+    "application_signature": "original_app_valid_before_changes"
+  },
+  "compatibility_as_of": "2026-10-05"
 }

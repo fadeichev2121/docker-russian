@@ -1,114 +1,48 @@
 #!/bin/bash
-# MIT License
-# Copyright (c) 2026 fadeichev2121
-# Docker Desktop Russian Localizer - Linux Installer
+# SPDX-License-Identifier: MIT
 set -euo pipefail
-umask 022
-
-OWNER="fadeichev2121"
-REPO="docker-russian"
-BRANCH="main"
-PRODUCT="Docker Desktop"
-SCRIPT_NAME="install.sh"
-
+umask 077
 usage() {
-  cat <<EOF
-Русский интерфейс $PRODUCT для Linux
-
-Запуск интерактивного меню:
-  bash $SCRIPT_NAME
-
-Прямые команды:
-  bash $SCRIPT_NAME install   — установить русский перевод
-  bash $SCRIPT_NAME status    — проверить статус русификации
-  bash $SCRIPT_NAME restore   — вернуть оригинальный английский интерфейс
-  bash $SCRIPT_NAME --help    — эта справка
-
-Перед запуском полностью закройте Docker Desktop.
-Нужны Linux, Python 3.9+ и установленный Docker Desktop (/opt/docker-desktop).
-EOF
+cat <<'HELP'
+Docker Desktop на русском
+  bash docker_ru.sh              — понятное меню
+  bash docker_ru.sh install      — установить помощник
+  bash docker_ru.sh launch       — открыть оригинальный Docker на русском
+  bash docker_ru.sh status       — состояние
+  bash docker_ru.sh restore      — убрать перевод и ярлык
+  bash docker_ru.sh logs         — показать причину ошибки
+Путь к Docker: --app "/путь/к/Docker.app"
+Нужен Node.js 18+ (LTS с https://nodejs.org/). Запускайте без sudo.
+HELP
 }
-
-ACTION="${1:-menu}"
-case "$ACTION" in
-  --help|-h) usage; exit 0 ;;
-  menu|install|status|restore) ;;
-  *) printf '[Ошибка] Неизвестное действие: %s\n' "$ACTION" >&2; usage; exit 1 ;;
-esac
-
-if ! command -v python3 >/dev/null 2>&1; then
-  printf '[Ошибка] Python 3 не найден. Установите Python 3.9+ (например: sudo apt install python3) и повторите попытку.\n' >&2
-  exit 1
+case "${1:-menu}" in --help|-h) usage; exit 0;; menu|install|launch|status|restore|logs|--app|--state) ;; *) usage;exit 1;; esac
+case "$(uname -s)" in Darwin|Linux) ;; *) printf '[Ошибка] Для Windows используйте windows/install.ps1\n' >&2;exit 1;; esac
+if [ "$(id -u)" -eq 0 ]; then printf '[Ошибка] Запустите без sudo — установка для вашего пользователя.\n' >&2;exit 1;fi
+if ! command -v node >/dev/null 2>&1 || ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 18 ? 0 : 1)'; then
+ printf '[Ошибка] Нужен Node.js 18 или новее. Установите LTS с https://nodejs.org/ и откройте терминал заново.\n' >&2;exit 1
 fi
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PATCH_PY="$SCRIPT_DIR/../core/patch.py"
-
-if [ ! -f "$PATCH_PY" ]; then
-  PATCH_PY="$SCRIPT_DIR/core/patch.py"
+TASK_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TASK_CONTROL="$TASK_SCRIPT_DIR/core/control.cjs"
+if [ ! -f "$TASK_CONTROL" ]; then TASK_CONTROL="$TASK_SCRIPT_DIR/../core/control.cjs";fi
+TASK_TMP=''
+cleanup() { if [ -n "$TASK_TMP" ] && [ -d "$TASK_TMP" ] && [ ! -L "$TASK_TMP" ];then rm -rf -- "$TASK_TMP";fi; }
+trap cleanup EXIT
+if [ ! -f "$TASK_CONTROL" ]; then
+ command -v curl >/dev/null 2>&1 || { printf '[Ошибка] Нужен curl для загрузки файлов.\n' >&2;exit 1; }
+ TASK_TMP="$(mktemp -d)"
+ mkdir "$TASK_TMP/core"
+ printf 'Загружаю русификатор Docker из GitHub…\n'
+ curl -fLsS --retry 2 'https://api.github.com/repos/fadeichev2121/docker-russian/commits/main' -o "$TASK_TMP/commit.json"
+ TASK_SHA="$(node -e 'const d=require(process.argv[1]);if(!/^[a-f0-9]{40}$/.test(d.sha||""))process.exit(1);process.stdout.write(d.sha)' "$TASK_TMP/commit.json")"
+ for file in control.cjs launcher.cjs cdp-pipe.cjs ui-runtime.js ru.json;do
+  curl -fLsS --retry 2 "https://raw.githubusercontent.com/fadeichev2121/docker-russian/$TASK_SHA/core/$file" -o "$TASK_TMP/core/$file"
+ done
+ TASK_CONTROL="$TASK_TMP/core/control.cjs"
 fi
-
-# Standalone execution fallback (curl -fsSL ... | bash)
-if [ ! -f "$PATCH_PY" ]; then
-  TMP_DIR="$(mktemp -d -t docker_ru_linux_XXXXXX)"
-  trap 'rm -rf "$TMP_DIR"' EXIT
-  mkdir -p "$TMP_DIR/core"
-
-  printf 'Загрузка компонентов русификатора из GitHub...\n'
-  BASE_URL="https://raw.githubusercontent.com/$OWNER/$REPO/$BRANCH/core"
-  curl -fsSL "$BASE_URL/asar.py" -o "$TMP_DIR/core/asar.py"
-  curl -fsSL "$BASE_URL/ui-runtime.js" -o "$TMP_DIR/core/ui-runtime.js"
-  curl -fsSL "$BASE_URL/ru.json" -o "$TMP_DIR/core/ru.json"
-  curl -fsSL "$BASE_URL/patch.py" -o "$TMP_DIR/core/patch.py"
-
-  PATCH_PY="$TMP_DIR/core/patch.py"
-fi
-
-if [ "$ACTION" = "menu" ]; then
-  clear || true
-  printf '===================================================\n'
-  printf '       Русский интерфейс для Docker Desktop (Linux) \n'
-  printf '===================================================\n\n'
-  printf 'Выберите действие:\n'
-  printf '  1) Установить русский язык\n'
-  printf '  2) Проверить статус\n'
-  printf '  3) Откатить на оригинальный английский интерфейс\n'
-  printf '  0) Выход\n\n'
-  if [ -t 0 ]; then
-    read -r -p "Введите номер [1-3, 0]: " CHOICE
-  elif [ -e /dev/tty ]; then
-    read -r -p "Введите номер [1-3, 0]: " CHOICE < /dev/tty
-  else
-    printf '[Ошибка] Неинтерактивная среда. Укажите команду напрямую: bash %s [install|status|restore]\n' "$SCRIPT_NAME" >&2
-    exit 1
-  fi
-  case "$CHOICE" in
-    1) ACTION="install" ;;
-    2) ACTION="status" ;;
-    3) ACTION="restore" ;;
-    0) exit 0 ;;
-    *) printf '[Ошибка] Неверный выбор: %s\n' "$CHOICE" >&2; exit 1 ;;
-  esac
-fi
-
-# Check permissions for /opt/docker-desktop
-TARGET_ASAR="/opt/docker-desktop/resources/app.asar"
-if [ "$ACTION" != "status" ] && [ -f "$TARGET_ASAR" ] && [ ! -w "$TARGET_ASAR" ] && [ "$(id -u)" -ne 0 ]; then
-  printf '\n[Внимание] Для изменения %s требуются права root.\n' "$TARGET_ASAR"
-  printf 'Перезапуск через sudo...\n\n'
-  if [ -t 0 ]; then
-    exec sudo python3 "$PATCH_PY" "$ACTION"
-  elif [ -e /dev/tty ]; then
-    exec sudo python3 "$PATCH_PY" "$ACTION" < /dev/tty
-  else
-    exec sudo python3 "$PATCH_PY" "$ACTION"
-  fi
-fi
-
-if [ -t 0 ]; then
-  python3 "$PATCH_PY" "$ACTION"
-elif [ -e /dev/tty ]; then
-  python3 "$PATCH_PY" "$ACTION" < /dev/tty
+if [ -t 0 ];then
+ node "$TASK_CONTROL" "$@"
+elif [ -e /dev/tty ];then
+ node "$TASK_CONTROL" "$@" < /dev/tty
 else
-  python3 "$PATCH_PY" "$ACTION"
+ node "$TASK_CONTROL" "$@"
 fi

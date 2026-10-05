@@ -310,6 +310,12 @@ def check_status(app_path: str = "") -> bool:
     return is_patched
 
 def install(app_path: str = ""):
+    raise RuntimeError(
+        "Старый ASAR-патч заблокирован: он может нарушать подпись Docker. "
+        "Используйте новый установщик: bash install.sh (Windows: windows/install.ps1). "
+        "Для восстановления ранее повреждённого Docker нужен официальный установщик."
+    )
+
     app_path = os.path.expanduser(os.path.expandvars(app_path or get_default_app_path()))
     asar_path = resolve_asar_path(app_path)
 
@@ -405,6 +411,12 @@ def install(app_path: str = ""):
     print("=" * 55 + "\n")
 
 def restore(app_path: str = ""):
+    raise RuntimeError(
+        "Старый ASAR-патч заблокирован: он может нарушать подпись Docker. "
+        "Используйте новый установщик: bash install.sh (Windows: windows/install.ps1). "
+        "Для восстановления ранее повреждённого Docker нужен официальный установщик."
+    )
+
     app_path = os.path.expanduser(os.path.expandvars(app_path or get_default_app_path()))
     asar_path = resolve_asar_path(app_path)
     plat = get_platform()

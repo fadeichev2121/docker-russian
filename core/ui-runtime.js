@@ -1,9 +1,19 @@
-// Docker Desktop Russian UI Translation Runtime v2.1
+// Docker Desktop Russian UI Translation Runtime v3.0
 // Intelligent DOM Mutation Observer & Multi-level Matcher
 (() => {
   "use strict";
 
+  if (globalThis.__dockerRussian?.active) return;
+  const changes = new Map();
+  const oldLanguage = document.documentElement?.getAttribute("lang");
+  let active = true;
   const DICT = __RU_DICTIONARY__;
+  function remember(node, key, original, translated) {
+    let entries = changes.get(node);
+    if (!entries) { entries = new Map(); changes.set(node, entries); }
+    const previous = entries.get(key);
+    entries.set(key, { original: previous?.translated === original ? previous.original : original, translated });
+  }
 
   function normalize(text) {
     return text.replace(/\s+/g, " ").trim();
@@ -120,7 +130,7 @@
     if (omitted(node.parentElement)) return;
     const original = node.nodeValue;
     const value = ru(original);
-    if (value !== original) node.nodeValue = value;
+    if (value !== original) { remember(node, "text", original, value); node.nodeValue = value; }
   }
 
   function attributes(el) {
@@ -130,14 +140,14 @@
       const original = el.getAttribute(name);
       if (!original) continue;
       const value = ru(original);
-      if (value !== original) el.setAttribute(name, value);
+      if (value !== original) { remember(el, name, original, value); el.setAttribute(name, value); }
     }
     // Handle button value attribute
     if (el.tagName === "INPUT" && (el.type === "button" || el.type === "submit")) {
       const val = el.value;
       if (val) {
         const trans = ru(val);
-        if (trans !== val) el.value = trans;
+        if (trans !== val) { remember(el, "value", val, trans); el.value = trans; }
       }
     }
   }
@@ -170,8 +180,10 @@
 
   function flush() {
     scheduled = false;
+    if (!active) return;
     const roots = [...pending];
     pending.clear();
+    for (const node of changes.keys()) if (!node.isConnected) changes.delete(node);
     for (const root of roots) {
       if (!root.isConnected) continue;
       if (roots.some(parent => parent !== root && parent.nodeType === Node.ELEMENT_NODE && parent.contains(root))) continue;
@@ -194,7 +206,7 @@
   });
 
   function start() {
-    if (!document.documentElement) return;
+    if (!active || !document.documentElement) return;
     document.documentElement.lang = "ru";
     const root = document.body || document.documentElement;
     subtree(root);
@@ -206,6 +218,33 @@
       attributeFilter: ATTRS
     });
   }
+
+  globalThis.__dockerRussian = {
+    get active() { return active; },
+    stop(restore = true) {
+      active = false;
+      observer.disconnect();
+      document.removeEventListener("DOMContentLoaded", start);
+      pending.clear();
+      if (restore) {
+        for (const [node, entries] of changes) {
+          if (!node.isConnected) continue;
+          for (const [key, entry] of entries) {
+            const current = key === "text" ? node.nodeValue : key === "value" ? node.value : node.getAttribute(key);
+            if (current !== entry.translated) continue;
+            if (key === "text") node.nodeValue = entry.original;
+            else if (key === "value") node.value = entry.original;
+            else node.setAttribute(key, entry.original);
+          }
+        }
+        if (document.documentElement?.lang === "ru") {
+          if (oldLanguage == null) document.documentElement.removeAttribute("lang");
+          else document.documentElement.setAttribute("lang", oldLanguage);
+        }
+      }
+      changes.clear();
+    }
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
