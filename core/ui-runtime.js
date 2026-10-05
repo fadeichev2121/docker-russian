@@ -1,8 +1,15 @@
-// Docker Desktop Russian UI Translation Runtime
+// Docker Desktop Russian UI Translation Runtime v2.0
+// Intelligent DOM Mutation Observer & Multi-level Matcher
 (() => {
   "use strict";
 
   const DICT = __RU_DICTIONARY__;
+
+  // Build case-insensitive lookup table for fallback
+  const LOWER_DICT = Object.create(null);
+  for (const [k, v] of Object.entries(DICT)) {
+    LOWER_DICT[k.toLowerCase()] = v;
+  }
 
   // Elements and containers that should NEVER be translated (terminals, logs, code, inputs)
   const OMIT = [
@@ -13,41 +20,97 @@
     "[data-testid='container-env-vars']", ".monaco-editor", ".cm-editor"
   ].join(",");
 
-  const ATTRS = ["title", "aria-label", "placeholder", "data-placeholder", "data-tooltip-content"];
+  const ATTRS = ["title", "aria-label", "placeholder", "data-placeholder", "data-tooltip-content", "data-tooltip", "alt"];
 
   function omitted(el) {
     if (!el || el.closest(OMIT)) return true;
     return false;
   }
 
-  function ru(text) {
-    if (!text || text.length > 2000) return text;
-    const trimmed = text.trim();
-    if (!trimmed) return text;
-
-    let translated = Object.hasOwn(DICT, trimmed) ? DICT[trimmed] : undefined;
-
-    // Dynamic patterns
-    if (translated === undefined) {
-      let m;
-      if ((m = /^(\d+)\s+containers?$/i.exec(trimmed))) {
-        translated = m[1] + " контейнеров";
-      } else if ((m = /^(\d+)\s+images?$/i.exec(trimmed))) {
-        translated = m[1] + " образов";
-      } else if ((m = /^(\d+)\s+volumes?$/i.exec(trimmed))) {
-        translated = m[1] + " томов";
-      } else if ((m = /^About\s+(\d+)\s+(seconds?|minutes?|hours?|days?|months?|years?)\s+ago$/i.exec(trimmed))) {
-        const units = { second: "сек.", minute: "мин.", hour: "ч.", day: "дн.", month: "мес.", year: "г." };
-        const uKey = m[2].toLowerCase().replace(/s$/, "");
-        translated = "Около " + m[1] + " " + (units[uKey] || m[2]) + " назад";
-      } else if ((m = /^(\d+(?:\.\d+)?)\s*(GB|MB|KB)\s+allocated$/i.exec(trimmed))) {
-        translated = "Выделено " + m[1] + " " + m[2];
+  function matchDict(s) {
+    if (Object.hasOwn(DICT, s)) return DICT[s];
+    const lower = s.toLowerCase();
+    if (Object.hasOwn(LOWER_DICT, lower)) {
+      const trans = LOWER_DICT[lower];
+      if (s[0] === s[0].toUpperCase() && trans[0] !== trans[0].toUpperCase()) {
+        return trans[0].toUpperCase() + trans.slice(1);
       }
+      return trans;
+    }
+    return undefined;
+  }
+
+  function resolveTranslation(raw) {
+    // 1. Direct dictionary match
+    let res = matchDict(raw);
+    if (res !== undefined) return res;
+
+    // 2. Trailing colon: "Name:" -> "Имя:"
+    if (raw.endsWith(":")) {
+      const sub = matchDict(raw.slice(0, -1).trim());
+      if (sub !== undefined) return sub + ":";
     }
 
+    // 3. Trailing ellipsis: "Loading..." or "Loading…" -> "Загрузка..."
+    if (raw.endsWith("...")) {
+      const sub = matchDict(raw.slice(0, -3).trim());
+      if (sub !== undefined) return sub + "...";
+    } else if (raw.endsWith("…")) {
+      const sub = matchDict(raw.slice(0, -1).trim());
+      if (sub !== undefined) return sub + "…";
+    }
+
+    // 4. Trailing question mark: "Delete container?" -> "Удалить контейнер?"
+    if (raw.endsWith("?")) {
+      const sub = matchDict(raw.slice(0, -1).trim());
+      if (sub !== undefined) return sub + "?";
+    }
+
+    // 5. Parenthesized count: "Containers (5)" -> "Контейнеры (5)"
+    let m = /^(.+?)\s*\(([\d\w\s\.\/]+)\)$/.exec(raw);
+    if (m) {
+      const sub = matchDict(m[1].trim());
+      if (sub !== undefined) return sub + " (" + m[2] + ")";
+    }
+
+    // 6. Dynamic patterns (counters, timestamps, memory, ports)
+    if ((m = /^(\d+)\s+containers?$/i.exec(raw))) {
+      return m[1] + " контейнеров";
+    } else if ((m = /^(\d+)\s+images?$/i.exec(raw))) {
+      return m[1] + " образов";
+    } else if ((m = /^(\d+)\s+volumes?$/i.exec(raw))) {
+      return m[1] + " томов";
+    } else if ((m = /^(\d+)\s+builds?$/i.exec(raw))) {
+      return m[1] + " сборок";
+    } else if ((m = /^About\s+(\d+)\s+(seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago$/i.exec(raw))) {
+      const units = { second: "сек.", minute: "мин.", hour: "ч.", day: "дн.", week: "нед.", month: "мес.", year: "г." };
+      const uKey = m[2].toLowerCase().replace(/s$/, "");
+      return "Около " + m[1] + " " + (units[uKey] || m[2]) + " назад";
+    } else if ((m = /^(\d+(?:\.\d+)?)\s*(GB|MB|KB)\s+allocated$/i.exec(raw))) {
+      return "Выделено " + m[1] + " " + m[2];
+    } else if ((m = /^(\d+(?:\.\d+)?)\s*(GB|MB|KB)\s+in use$/i.exec(raw))) {
+      return "Используется " + m[1] + " " + m[2];
+    } else if ((m = /^Port\s+(\d+)\s*->\s*(\d+)$/i.exec(raw))) {
+      return "Порт " + m[1] + " → " + m[2];
+    }
+
+    return undefined;
+  }
+
+  function ru(text) {
+    if (!text || text.length > 2500) return text;
+    // Replace non-breaking spaces with standard space
+    const normalized = text.replace(/\u00a0/g, " ");
+    const trimmed = normalized.trim();
+    if (!trimmed) return text;
+
+    const translated = resolveTranslation(trimmed);
     if (!translated || translated === trimmed) return text;
     const start = text.indexOf(trimmed);
-    return text.slice(0, start) + translated + text.slice(start + trimmed.length);
+    if (start !== -1) {
+      return text.slice(0, start) + translated + text.slice(start + trimmed.length);
+    }
+    return translated;
   }
 
   function textNode(node) {
@@ -64,6 +127,14 @@
       if (!original) continue;
       const value = ru(original);
       if (value !== original) el.setAttribute(name, value);
+    }
+    // Handle button value attribute
+    if (el.tagName === "INPUT" && (el.type === "button" || el.type === "submit")) {
+      const val = el.value;
+      if (val) {
+        const trans = ru(val);
+        if (trans !== val) el.value = trans;
+      }
     }
   }
 

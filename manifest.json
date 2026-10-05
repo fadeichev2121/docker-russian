@@ -1,7 +1,7 @@
 {
   "format": 1,
   "repository": "docker-russian",
-  "package_version": "1.0.0",
+  "package_version": "2.0.0",
   "author": "fadeichev2121",
   "platforms": {
     "macOS": [
@@ -31,7 +31,7 @@
       "installation": "official DEB / RPM"
     }
   },
-  "dictionary_entries": 264,
+  "dictionary_entries": 3196,
   "execution_verified": true,
   "compatibility_as_of": "2026-10-05"
 }
