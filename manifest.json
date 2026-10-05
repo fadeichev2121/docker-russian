@@ -1,7 +1,7 @@
 {
   "format": 2,
   "repository": "docker-russian",
-  "package_version": "3.0.1",
+  "package_version": "3.0.2",
   "author": "fadeichev2121",
   "method": "original-app-launcher-cdp-pipe",
   "requirements": {
@@ -30,9 +30,11 @@
   },
   "legacy_asar_patch": "blocked_on_all_platforms",
   "automatic_login_start": false,
+  "existing_dashboard": "refuse_without_signalling; user_quits_Docker_before_RU_launch",
+  "disable_translation": "restore_text_keep_GUI_and_pipe_until_user_quits_Docker",
   "vendor_update_behavior": "helper_kept_outside_app; reinject_on_RU_launch; future_versions_not_guaranteed",
   "validation": {
-    "fixture_tests": "8 helper + 6 bootstrap Node + 7 legacy Python",
+    "fixture_tests": "8 helper + 6 bootstrap + 2 lifecycle Node + 7 legacy Python",
     "real_application_launch": "not_checked",
     "application_signature": "original_app_valid_before_changes"
   },

@@ -7,7 +7,7 @@ const os=require('node:os');
 const crypto=require('node:crypto');
 const {spawn,spawnSync}=require('node:child_process');
 const OWNER='docker-russian-helper-v3';
-const VERSION='3.0.1';
+const VERSION='3.0.2';
 const FILES=['control.cjs','launcher.cjs','cdp-pipe.cjs','ui-runtime.js','ru.json'];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const shell=s=>"'"+s.replace(/'/g,"'\\''")+"'";
@@ -181,12 +181,15 @@ async function launchHelper(state){
     if(r.status==='ready'){console.log('[ОК] Русский интерфейс уже открыт.');return;}
     throw new Error('Помощник уже запускается; дождитесь открытия окна.');
   }
-  const log=fs.openSync(path.join(state,'launcher.log'),'w',0o600);
+  const logPath=path.join(state,'launcher.log');safePath(logPath);
+  const log=fs.openSync(logPath,'w',0o600);
   let child;try{child=spawn(config.node,[path.join(config.package,'launcher.cjs'),path.join(state,'config.json')],{stdio:['ignore',log,log],detached:true,windowsHide:true});}finally{fs.closeSync(log);}
   let spawnError;child.on('error',e=>{spawnError=e;});child.unref();
   console.log('Открываю оригинальный Docker с русским интерфейсом…');
   for(let i=0;i<360;i++){
     await sleep(250);if(spawnError)throw spawnError;
+    const errorLine=fs.readFileSync(logPath,'utf8').slice(-12000).split('\n').find(line=>line.startsWith('[Ошибка] '));
+    if(errorLine)throw new Error(errorLine.slice(9));
     if(fs.existsSync(runtimeFile)){
       const r=readJSON(runtimeFile);if(r.pid===child.pid&&r.status==='ready'){console.log('[ОК] Перевод подключён. Теперь можно закрыть терминал.');return;}
     }
@@ -206,7 +209,7 @@ async function action(name,options){
     console.log('Русификатор: '+VERSION+'\nСистема: '+process.platform);
     if(!fs.existsSync(path.join(state,'config.json'))){console.log('Не установлен. Выберите пункт 1.');return;}
     const c=loadConfig(state);console.log('Установленная версия помощника: '+c.version+'\nDocker: '+c.app+'\nЯрлык: '+c.shortcut+'\nФайлы Docker: помощник их не изменяет.');verifyVendor(c);
-    const r=path.join(state,'runtime.json');if(fs.existsSync(r)){const d=readJSON(r);const alive=runtimeAlive(state);console.log('Русское окно: '+(alive?d.status:'помощник завершился; повторите пункт 2.'));}else console.log('Русское окно закрыто. Для открытия выберите пункт 2.');
+    const r=path.join(state,'runtime.json');if(fs.existsSync(r)){const d=readJSON(r);const alive=runtimeAlive(state);console.log('Русское окно: '+(alive?d.status:'помощник завершился; повторите пункт 2.'));}else console.log('Перевод сейчас не подключён. Для открытия выберите пункт 2.');
   }else if(name==='logs'){
     const log=path.join(state,'launcher.log');if(fs.existsSync(log))console.log(fs.readFileSync(log,'utf8').slice(-12000));else console.log('Журнал появится после первого запуска.');
   }else throw new Error('Неизвестное действие.');
