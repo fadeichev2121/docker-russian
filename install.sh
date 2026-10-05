@@ -76,13 +76,20 @@ if [ "$ACTION" = "menu" ]; then
   printf '  2) Проверить статус\n'
   printf '  3) Откатить на оригинальный английский интерфейс\n'
   printf '  0) Выход\n\n'
-  read -r -p "Введите номер [1-3, 0]: " CHOICE
+  if [ -t 0 ]; then
+    read -r -p "Введите номер [1-3, 0]: " CHOICE
+  elif [ -e /dev/tty ]; then
+    read -r -p "Введите номер [1-3, 0]: " CHOICE < /dev/tty
+  else
+    printf '[Ошибка] Неинтерактивная среда. Укажите команду напрямую: bash %s [install|status|restore]\n' "$SCRIPT_NAME" >&2
+    exit 1
+  fi
   case "$CHOICE" in
     1) ACTION="install" ;;
     2) ACTION="status" ;;
     3) ACTION="restore" ;;
     0) exit 0 ;;
-    *) printf '[Ошибка] Неверный выбор.\n' >&2; exit 1 ;;
+    *) printf '[Ошибка] Неверный выбор: %s\n' "$CHOICE" >&2; exit 1 ;;
   esac
 fi
 
@@ -92,8 +99,20 @@ if [ "$OS" = "Linux" ] && [ "$ACTION" != "status" ]; then
   if [ -f "$TARGET_ASAR" ] && [ ! -w "$TARGET_ASAR" ] && [ "$(id -u)" -ne 0 ]; then
     printf '\n[Внимание] Для записи в /opt/docker-desktop требуются права root.\n'
     printf 'Перезапуск с sudo...\n\n'
-    exec sudo python3 "$PATCH_PY" "$ACTION"
+    if [ -t 0 ]; then
+      exec sudo python3 "$PATCH_PY" "$ACTION"
+    elif [ -e /dev/tty ]; then
+      exec sudo python3 "$PATCH_PY" "$ACTION" < /dev/tty
+    else
+      exec sudo python3 "$PATCH_PY" "$ACTION"
+    fi
   fi
 fi
 
-python3 "$PATCH_PY" "$ACTION"
+if [ -t 0 ]; then
+  python3 "$PATCH_PY" "$ACTION"
+elif [ -e /dev/tty ]; then
+  python3 "$PATCH_PY" "$ACTION" < /dev/tty
+else
+  python3 "$PATCH_PY" "$ACTION"
+fi

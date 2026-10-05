@@ -161,7 +161,10 @@ def install(app_path: str = ""):
     if is_docker_running():
         print("\n[Внимание] Docker Desktop сейчас запущен!")
         print("Пожалуйста, полностью закройте Docker Desktop перед продолжением.")
-        choice = input("Продолжить установку? [y/N]: ").strip().lower()
+        try:
+            choice = input("Продолжить установку? [y/N]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            choice = "n"
         if choice not in ("y", "yes", "д", "да"):
             print("Установка отменена.")
             sys.exit(0)
@@ -255,7 +258,10 @@ def restore(app_path: str = ""):
     if is_docker_running():
         print("[Внимание] Docker Desktop сейчас запущен.")
         print("Закройте приложение перед восстановлением.")
-        choice = input("Продолжить откат? [y/N]: ").strip().lower()
+        try:
+            choice = input("Продолжить откат? [y/N]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            choice = "n"
         if choice not in ("y", "yes", "д", "да"):
             print("Откат отменен.")
             sys.exit(0)
