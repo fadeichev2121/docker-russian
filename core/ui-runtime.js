@@ -1,14 +1,18 @@
-// Docker Desktop Russian UI Translation Runtime v2.0
+// Docker Desktop Russian UI Translation Runtime v2.1
 // Intelligent DOM Mutation Observer & Multi-level Matcher
 (() => {
   "use strict";
 
   const DICT = __RU_DICTIONARY__;
 
+  function normalize(text) {
+    return text.replace(/\s+/g, " ").trim();
+  }
+
   // Build case-insensitive lookup table for fallback
   const LOWER_DICT = Object.create(null);
   for (const [k, v] of Object.entries(DICT)) {
-    LOWER_DICT[k.toLowerCase()] = v;
+    LOWER_DICT[normalize(k).toLowerCase()] = v;
   }
 
   // Elements and containers that should NEVER be translated (terminals, logs, code, inputs)
@@ -29,8 +33,8 @@
 
   function matchDict(s) {
     if (Object.hasOwn(DICT, s)) return DICT[s];
-    const lower = s.toLowerCase();
-    if (Object.hasOwn(LOWER_DICT, lower)) {
+    const lower = normalize(s).toLowerCase();
+    if (lower && Object.hasOwn(LOWER_DICT, lower)) {
       const trans = LOWER_DICT[lower];
       if (s[0] === s[0].toUpperCase() && trans[0] !== trans[0].toUpperCase()) {
         return trans[0].toUpperCase() + trans.slice(1);
@@ -106,11 +110,10 @@
 
     const translated = resolveTranslation(trimmed);
     if (!translated || translated === trimmed) return text;
-    const start = text.indexOf(trimmed);
-    if (start !== -1) {
-      return text.slice(0, start) + translated + text.slice(start + trimmed.length);
-    }
-    return translated;
+    // Keep boundary spaces: React often places a link or inline code in the next node.
+    const leading = /^\s*/.exec(text)[0];
+    const trailing = /\s*$/.exec(text)[0];
+    return leading + translated + trailing;
   }
 
   function textNode(node) {
@@ -121,7 +124,8 @@
   }
 
   function attributes(el) {
-    if (omitted(el)) return;
+    // Localize input labels and hints, while leaving all user-entered values alone.
+    if (omitted(el) && !(el.tagName === "INPUT" && !omitted(el.parentElement))) return;
     for (const name of ATTRS) {
       const original = el.getAttribute(name);
       if (!original) continue;
@@ -142,12 +146,15 @@
     if (root.nodeType === Node.TEXT_NODE) { textNode(root); return; }
     if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) return;
     if (root.nodeType === Node.ELEMENT_NODE) {
-      if (root.closest(OMIT)) return;
       attributes(root);
+      if (root.closest(OMIT)) return;
     }
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
-        if (node.nodeType === Node.ELEMENT_NODE && node.matches(OMIT)) return NodeFilter.FILTER_REJECT;
+        if (node.nodeType === Node.ELEMENT_NODE && node.matches(OMIT)) {
+          attributes(node);
+          return NodeFilter.FILTER_REJECT;
+        }
         return NodeFilter.FILTER_ACCEPT;
       }
     });

@@ -1,37 +1,35 @@
 {
   "format": 1,
   "repository": "docker-russian",
-  "package_version": "2.0.0",
+  "package_version": "2.1.1",
   "author": "fadeichev2121",
   "platforms": {
-    "macOS": [
-      "4.45.0",
-      "latest"
-    ],
+    "macOS": {
+      "installation": "blocked",
+      "automatic_restore": "blocked"
+    },
     "Windows": {
-      "versions": [
-        "4.45.0",
-        "latest"
-      ],
-      "architectures": [
-        "x64",
-        "arm64"
-      ],
-      "installation": "official installer"
+      "verification": "not_checked",
+      "installation": "experimental"
     },
     "Linux": {
-      "versions": [
-        "4.45.0",
-        "latest"
-      ],
-      "architectures": [
-        "amd64",
-        "arm64"
-      ],
-      "installation": "official DEB / RPM"
+      "verification": "not_checked",
+      "installation": "experimental"
     }
   },
-  "dictionary_entries": 3196,
-  "execution_verified": true,
-  "compatibility_as_of": "2026-10-05"
+  "dictionary_entries": 3290,
+  "execution_verified": false,
+  "compatibility_as_of": "2026-10-05",
+  "validation": {
+    "platform": "macOS",
+    "docker_version": "4.93.0",
+    "docker_build": "4.93.0.2",
+    "archive_install_restore": "archive_hashes_verified_before_macOS_signature_failure",
+    "application_launch": "verified_original_app_after_restoration",
+    "windows_linux": "not_checked",
+    "patched_application_launch": "failed_code_signature_invalid",
+    "macos_translation_install": "blocked"
+  },
+  "blocked_macos_installation": "all macOS versions",
+  "blocked_macos_restore": "all macOS versions"
 }
