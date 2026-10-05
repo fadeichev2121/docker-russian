@@ -1,11 +1,13 @@
 {
   "format": 2,
   "repository": "docker-russian",
-  "package_version": "3.0.0",
+  "package_version": "3.0.1",
   "author": "fadeichev2121",
   "method": "original-app-launcher-cdp-pipe",
   "requirements": {
     "node": ">=18",
+    "manual_node_installation": false,
+    "automatic_runtime": "official_Node.js_24_LTS_private_copy_when_needed_SHA256_verified",
     "python": false,
     "npm_dependencies": false
   },
@@ -30,7 +32,7 @@
   "automatic_login_start": false,
   "vendor_update_behavior": "helper_kept_outside_app; reinject_on_RU_launch; future_versions_not_guaranteed",
   "validation": {
-    "fixture_tests": "8 Node + 7 legacy Python",
+    "fixture_tests": "8 helper + 6 bootstrap Node + 7 legacy Python",
     "real_application_launch": "not_checked",
     "application_signature": "original_app_valid_before_changes"
   },

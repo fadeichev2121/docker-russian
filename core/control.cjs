@@ -7,7 +7,7 @@ const os=require('node:os');
 const crypto=require('node:crypto');
 const {spawn,spawnSync}=require('node:child_process');
 const OWNER='docker-russian-helper-v3';
-const VERSION='3.0.0';
+const VERSION='3.0.1';
 const FILES=['control.cjs','launcher.cjs','cdp-pipe.cjs','ui-runtime.js','ru.json'];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const shell=s=>"'"+s.replace(/'/g,"'\\''")+"'";

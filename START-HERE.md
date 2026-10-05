@@ -1,7 +1,7 @@
 # Начни здесь
 
-1. Установи Node.js LTS с https://nodejs.org/, если его ещё нет. Открой новый терминал.
-2. В распакованной папке на Mac/Linux выполни `bash install.sh`. На Windows: `powershell -ExecutionPolicy Bypass -File .\windows\install.ps1`.
+1. В распакованной папке на Mac/Linux выполни `bash install.sh`. На Windows: `powershell -ExecutionPolicy Bypass -File .\windows\install.ps1`.
+2. Дождись меню: служебные файлы подготовятся автоматически. **Node.js вручную устанавливать не нужно.**
 3. Выбери **1 — установить**, затем **2 — открыть Docker на русском**.
 4. В следующий раз открывай ярлык **Docker Desktop RU**. Он запускает установленный оригинальный Docker.
 5. Удаление перевода — **пункт 4**, причина ошибки — **пункт 5**.
