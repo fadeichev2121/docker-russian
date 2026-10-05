@@ -223,19 +223,6 @@ def install(app_path: str = ""):
     os.replace(temp_target, asar_path)
     print("   ✓ Файл app.asar успешно обновлен.")
 
-    # macOS Ad-hoc codesigning and quarantine removal
-    if plat == "macos":
-        print("\nОбновление подписи macOS (ad-hoc codesign)...")
-        outer_app = app_path if app_path and app_path.endswith(".app") else "/Applications/Docker.app"
-        nested_app = get_nested_macos_app(outer_app)
-        try:
-            subprocess.run(["xattr", "-cr", outer_app], check=False)
-            subprocess.run(["codesign", "--force", "--deep", "--sign", "-", nested_app], check=False)
-            subprocess.run(["codesign", "--force", "--deep", "--sign", "-", outer_app], check=False)
-            print("   ✓ Цифровая подпись успешно обновлена.")
-        except Exception as e:
-            print(f"   [Предупреждение] Переподпись: {e}")
-
     print("\n" + "=" * 55)
     print("   [УСПЕХ] Docker Desktop успешно русифицирован!")
     print("   Запустите Docker Desktop и наслаждайтесь русским языком.")
@@ -269,17 +256,6 @@ def restore(app_path: str = ""):
     print("Восстановление исходного app.asar из резервной копии...")
     shutil.copy2(backup_asar, asar_path)
     print("   ✓ Исходный файл app.asar восстановлен.")
-
-    if plat == "macos":
-        print("Восстановление подписи macOS...")
-        outer_app = app_path if app_path and app_path.endswith(".app") else "/Applications/Docker.app"
-        nested_app = get_nested_macos_app(outer_app)
-        try:
-            subprocess.run(["xattr", "-cr", outer_app], check=False)
-            subprocess.run(["codesign", "--force", "--deep", "--sign", "-", nested_app], check=False)
-            subprocess.run(["codesign", "--force", "--deep", "--sign", "-", outer_app], check=False)
-        except Exception:
-            pass
 
     print("\n[УСПЕХ] Исходный английский интерфейс Docker Desktop полностью возвращён!\n")
 
